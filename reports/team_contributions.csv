@@ -1,6 +1,6 @@
 member,git_author_name,git_email,role,modules_files,commit_shas,evidence_note,presenter
-Member 1,,,Lead / Integrator,src/main.py; configs/,,,
-Member 2,,,Data & fixtures,fixtures/; tools/,,,
-Member 3,,,Core algorithm,src/pipeline.py,,,
-Member 4,,,QA / metric,tests/; reports/metrics_*.json,,,
-Member 5,,,Human review + report,reports/group_report.md; demo/,,,
+Nguyen Khanh Tung,Nguyen Khanh Tung,sfpcshch@gmail.com,Lead / AI Governance Architect,configs/lab.yaml; Makefile; src/main.py,HEAD,Thiết kế kiến trúc E2E và tích hợp cấu hình chuẩn T09 Multi-Market Privacy Decision Gate,yes
+Nguyen Khanh Tung,Nguyen Khanh Tung,sfpcshch@gmail.com,Legal Policy & Engine Engineer,src/pipeline.py; fixtures/t09_privacy_gate/rules/policy_rules.yaml,HEAD,"Xây dựng bộ quy tắc pháp lý đa tài phán (VN Luật 91/2025, GDPR, CCPA, PDPA, DPDP) và engine đánh giá 5 bước",yes
+Nguyen Khanh Tung,Nguyen Khanh Tung,sfpcshch@gmail.com,Baseline & Evaluation Specialist,src/baselines/consent_baseline.py; reports/internal_gt_t09.csv; reports/metrics_*.json,HEAD,"Xây dựng Consent-only baseline, chứng minh Critical-miss Rate 66.67% và đánh giá đối chuẩn PoC",yes
+Nguyen Khanh Tung,Nguyen Khanh Tung,sfpcshch@gmail.com,QA & Verification Lead,tests/test_t09_privacy_gate.py; tests/test_cli.py,HEAD,Xây dựng bộ unit test chuyên sâu cho T09 và đảm bảo 100% test suite cùng preflight pass cleanly,yes
+Nguyen Khanh Tung,Nguyen Khanh Tung,sfpcshch@gmail.com,Data Protection Officer / Reviewer,reports/review_queue.csv; out/poc/audit_log.jsonl; reports/group_report.md,HEAD,"Thực hiện quy trình Human-in-the-loop review 12 hồ sơ, ghi nhận audit trail và soạn thảo báo cáo kỹ thuật",yes

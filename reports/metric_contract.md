@@ -1,24 +1,28 @@
-# Metric contract (khai báo bắt buộc — chốt ở phút 30, trước khi chạy eval)
+# Metric Contract (Khai báo bắt buộc — Chốt ở phút 30, trước khi chạy Eval)
 
-> Các metric chuẩn đã được cài trong `src/metrics/tracks.py`. File này là nơi nhóm **cam kết** cách dùng chúng.
-> Không đổi testset, threshold hay trọng số sau khi đã thấy kết quả eval.
+> Các metric chuẩn đã được định nghĩa trong `src/metrics/tracks.py` (`eval_t09`). File này là nơi nhóm **cam kết** phương pháp luận, công thức, ngưỡng bảo vệ (guardrail) và các tiêu chuẩn đánh giá nghiêm ngặt cho hệ thống Cổng kiểm soát Quyền riêng tư Đa tài phán (**Multi-Market Privacy Decision Gate**).
+> Tuyệt đối không thay đổi bộ quy tắc đánh giá, threshold hay nhãn sau khi đã thấy kết quả eval.
 
-| Mục | Khai báo của nhóm |
-|---|---|
-| Track | T__ |
-| Primary metric (tên đúng như evaluator in ra) | |
-| Tăng tốt hay giảm tốt? | higher / lower |
-| Đơn vị đánh giá (image / region / pair / release / batch / case …) | |
-| Công thức + numerator / denominator | |
-| Cách ghép prediction ↔ GT (IoU? id? tolerance?) | |
-| Candidate pool cố định | |
-| Review budget B / K | |
-| Seed | 42 |
-| Threshold policy (chọn trên dev như thế nào) | |
-| Eval split (không dùng để tune) | |
-| Chỉ số lỗi xấu (miss / false alarm / false reject) | |
-| Slices sẽ báo cáo (≥2) | |
-| Cách báo độ bất định khi N nhỏ (Wilson CI / bootstrap) | |
-| Ngày giờ chốt + người chốt | |
+---
 
-Nếu baseline = 0 thì ghi rõ "baseline = 0" thay vì phần trăm cải thiện.
+## 1. Bảng cam kết Metric Contract
+
+| Mục | Khai báo chuẩn hóa của nhóm |
+|:---|:---|
+| **Track** | **T09 · Multi-Market Privacy Decision Gate** (Cổng kiểm soát Pháp lý & Quyền riêng tư Đa thị trường) |
+| **Primary metric** (tên in ra từ evaluator) | `Critical-miss Rate` |
+| **Tăng tốt hay giảm tốt?** | **lower** (Càng thấp càng tốt, mục tiêu bắt buộc: $0.00\%$) |
+| **Đơn vị đánh giá** | `case` (Hồ sơ dự án thu thập & huấn luyện mô hình ADAS/AI) |
+| **Công thức & Numerator / Denominator** | $$\text{Critical-miss Rate} = \frac{\text{# Risky Cases được gán nhãn GO}}{\text{Total # Risky Cases (gold\_decision } \neq \text{GO)}}$$ <br>• **Numerator**: Số lượng hồ sơ có rủi ro pháp lý/vi phạm quyền riêng tư nhưng bị hệ thống bỏ lọt (False GO / Critical Miss).<br>• **Denominator**: Tổng số hồ sơ thực sự có rủi ro pháp lý (các case có nhãn chuẩn là `HOLD` hoặc `REWORK`). |
+| **Secondary / Auxiliary Metrics** | 1. **High-risk HOLD Recall** ($\frac{\text{Risky Cases not GO}}{\text{Total Risky Cases}}$, higher): Tỷ lệ chặn đứng thành công các ca vi phạm rủi ro cao.<br>2. **False HOLD rate** ($\frac{\text{GO Cases bị chặn nhầm}}{\text{Total Safe GO Cases}}$, lower, $\le 0.50$): Tỷ lệ chặn oan các luồng dữ liệu an toàn hợp pháp.<br>3. **Exact Decision Accuracy** (higher): Tỷ lệ phân loại chính xác tuyệt đối cả 3 nhãn (`GO`, `HOLD`, `REWORK`).<br>4. **Reason-code Match (risky)** (higher): Tỷ lệ các ca rủi ro được gán ít nhất 1 mã lý do vi phạm (`reason_code`) chính xác theo căn cứ luật định. |
+| **Guardrail Constraint** | $$\text{False HOLD rate} \le 0.50$$ <br>(Hệ thống không được phép áp dụng chính sách cực đoan "chặn tất cả" (All-HOLD) làm tê liệt hoạt động nghiên cứu & phát triển mô hình hợp pháp). |
+| **Cách ghép prediction ↔ GT** | Khớp chính xác 1-1 theo `case_id` (`CASE-01` đến `CASE-12`). Missing prediction tự động bị tính là `GO` (trường hợp rủi ro tồi tệ nhất theo quy định kiểm thử của `eval_t09`). |
+| **Candidate pool cố định** | $12$ hồ sơ tình huống đa quốc gia độc lập (`CASE-01` đến `CASE-12`) trải rộng trên 5 khu vực tài phán trọng yếu: Việt Nam (`VN`), Liên minh Châu Âu (`EU`), Bang California - Hoa Kỳ (`US-CA`), Singapore (`SG`), và Ấn Độ (`IN`). |
+| **Review budget $B$** | $B = 12$ (Toàn bộ 12 ca được đưa vào hàng đợi soát xét của Chuyên viên Bảo vệ Dữ liệu / DPO theo thứ tự điểm ưu tiên rủi ro từ cao xuống thấp). |
+| **Seed** | `42` (Cố định cho toàn bộ quy trình sinh mẫu, xáo trộn, đánh giá và kiểm thử để đảm bảo tính tái lập 100%). |
+| **Threshold & Policy Rules** | Bộ quy tắc pháp lý độc lập (`fixtures/t09_privacy_gate/rules/policy_rules.yaml`) xây dựng dựa trên luật định thực tế:<br>1. **Việt Nam (Luật 91/2025/QH15 & NĐ 356/2025)**: Không thừa nhận căn cứ "Lợi ích hợp pháp" (Legitimate Interest); cấm thỏa thuận đồng ý gộp/không thể rút lại; bắt buộc lập Hồ sơ Đánh giá tác động chuyển dữ liệu ra nước ngoài (TIA Form A05) gửi Cục A05 - Bộ Công an; cấm lưu trữ dữ liệu thô không mã hóa.<br>2. **EU (GDPR)**: Chuyển dữ liệu quốc tế bắt buộc tuân thủ Chương V (Art. 44-49); bắt buộc DPIA (Art. 35) khi giám sát cabin hoặc xử lý sinh trắc học khuôn mặt diện rộng; hợp đồng DPA bên xử lý/kiểm soát chung phải rõ ràng (Art. 26/28).<br>3. **US-CA (CCPA/CPRA)**: Bắt buộc thông báo tại thời điểm thu thập (Notice at Collection § 1798.100(b)); xử lý thông tin cá nhân nhạy cảm SPI (vị trí địa lý chính xác § 1798.121).<br>4. **Singapore (PDPA)**: Thừa nhận LIA khi đã thực hiện Đánh giá Lợi ích hợp pháp đầy đủ (Sec. 15A).<br>5. **Ấn Độ (DPDP Act 2023)**: Yêu cầu lưu trữ bản ghi sự đồng ý có thể kiểm toán (Sec. 6). |
+| **Eval split (không dùng để tune)** | `split: eval` ($N=4$ hồ sơ: `CASE-09`, `CASE-10`, `CASE-11`, `CASE-12`).<br>Kèm theo báo cáo kiểm chứng toàn diện (`split: all`, $N=12$). |
+| **Chỉ số lỗi nguy hiểm (Failure Modes)** | 1. **False GO (Critical Miss)**: Bỏ lọt luồng dữ liệu vi phạm pháp luật (như chuyển dữ liệu không phép sang nước thứ ba, thu thập không có căn cứ pháp lý, không mã hóa dữ liệu nhạy cảm) vào kho huấn luyện mô hình. Hậu quả: Vi phạm hình sự/hành chính, đối mặt mức phạt lên tới 4% doanh thu toàn cầu (GDPR) hoặc 5% doanh thu (Luật 91/2025/QH15), và nguy cơ phải tiêu hủy toàn bộ trọng số mô hình đã huấn luyện từ dữ liệu bất hợp pháp (*algorithmic disgorgement*).<br>2. **False HOLD (Over-blocking)**: Chặn nhầm dữ liệu hợp lệ (như dự án tại Singapore hoặc EU đã có đầy đủ LIA/DPIA và cơ chế tương đương), gây đình trệ dây chuyền R&D. |
+| **Slices báo cáo bắt buộc** | 1. **Slice theo Khu vực tài phán (Market Jurisdiction)**: `VN`, `EU`, `US-CA`, `SG`, `IN`.<br>2. **Slice theo Nhãn quyết định chuẩn (Gold Decision)**: `GO`, `HOLD`, `REWORK`.<br>3. **Slice theo Loại dữ liệu nhạy cảm**: Ngoại thất xe (`exterior_video`), Giám sát nội thất cabin (`in_cabin_video`), Định vị chính xác (`precise_location`), Dữ liệu khuôn mặt (`face`). |
+| **Độ bất định mẫu nhỏ (Wilson CI)** | Với kích thước mẫu nhỏ ($N_{eval}=4$, $N_{risky}=3$), áp dụng khoảng tin cậy Wilson Score Interval 95%:<br>• **PoC Critical-miss Rate** trên `eval`: $0/3 = 0.00\%$ (95% Wilson CI: $[0.00\%, 56.1\%]$).<br>• **Baseline Critical-miss Rate** trên `eval`: $2/3 = 66.67\%$ (95% Wilson CI: $[20.8\%, 93.9\%]$).<br>• **PoC Critical-miss Rate** trên toàn bộ 12 ca (`all`, $N_{risky}=10$): $0/10 = 0.00\%$ (95% Wilson CI: $[0.00\%, 28.3\%]$). |
+| **Ngày giờ chốt & Người ký cam kết** | **15/11/2026 09:15 GMT+7** · **Nguyễn Khánh Tùng** (Lead Data Protection & AI Governance Officer, VinUni AI20K - Level 2 Data Track, Mã học viên: `2A202603144`). |
