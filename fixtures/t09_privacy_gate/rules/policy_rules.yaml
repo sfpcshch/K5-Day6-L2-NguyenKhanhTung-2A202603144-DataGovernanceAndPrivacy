@@ -1,0 +1,193 @@
+# =============================================================================
+# Multi-Market Data Privacy Policy Rules v1.0.0 (Production Gate Specification)
+# Academic & Practical Compliance Engine for ADAS Data Pipeline & AI Governance
+# Cites: GDPR (EU) 2016/679, Luật BVDLCN VN 91/2025/QH15, NĐ 356/2025/NĐ-CP,
+#        CCPA/CPRA (California), SG PDPA 2012, IN DPDP Act 2023.
+# =============================================================================
+policy_version: prod-1.0.0
+effective_date: 2026-11-15
+reason_codes:
+  - XBORDER_NO_MECHANISM
+  - XBORDER_NO_IMPACT_ASSESSMENT
+  - RETENTION_UNBOUNDED
+  - RETENTION_EXCESSIVE
+  - RAW_PII_IN_CLOUD
+  - DPIA_MISSING
+  - NOTICE_MISSING
+  - NO_LAWFUL_BASIS
+  - CONSENT_RECORD_MISSING
+  - CONSENT_INVALID
+  - MINORS
+  - NO_ENCRYPTION
+  - AMBIGUOUS_NEEDS_LEGAL
+
+rules:
+  # ---------------------------------------------------------------------------
+  # European Union (GDPR) Rules
+  # ---------------------------------------------------------------------------
+  - id: R-EU-XB-01
+    markets: [EU]
+    when: "transfer.cross_border and (transfer.mechanism in [null, 'unknown', 'none'] or transfer.destination == 'non-adequate third country' and transfer.mechanism in [null, 'unknown', 'none'])"
+    decision: HOLD
+    reason_code: XBORDER_NO_MECHANISM
+    description: "Cross-border personal data transfer to third country without adequacy decision or transfer safeguard (SCCs, BCRs)."
+    source:
+      doc: "Regulation (EU) 2016/679 (GDPR)"
+      ref: "Chapter V, Articles 44-49"
+      url: "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+
+  - id: R-EU-DPIA-01
+    markets: [EU]
+    when: "('in_cabin_video' in data_types or 'face' in data_types or 'pedestrians' in data_subjects) and not dpia_done"
+    decision: HOLD
+    reason_code: DPIA_MISSING
+    description: "High-risk systematic monitoring and in-cabin processing requires prior Data Protection Impact Assessment."
+    source:
+      doc: "Regulation (EU) 2016/679 (GDPR)"
+      ref: "Article 35(1), Article 35(3)(c), EDPB Guidelines 01/2020 on connected vehicles"
+      url: "https://edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-012020-processing-personal-data-context-connected_en"
+
+  - id: R-EU-AMB-01
+    markets: [EU]
+    when: "ambiguity_notes and len(ambiguity_notes.strip()) > 0"
+    decision: HOLD
+    reason_code: AMBIGUOUS_NEEDS_LEGAL
+    description: "Contractual ambiguity regarding controller vs processor status (Art. 26/28) must be escalated to DPO."
+    source:
+      doc: "Regulation (EU) 2016/679 (GDPR)"
+      ref: "Articles 26, 28, EDPB Guidelines 07/2020"
+      url: "https://edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-072020-concepts-controller-and-processor-gdpr_en"
+
+  # ---------------------------------------------------------------------------
+  # Vietnam (Luật 91/2025/QH15 & Nghị định 356/2025/NĐ-CP) Rules
+  # ---------------------------------------------------------------------------
+  - id: R-VN-LB-01
+    markets: [VN]
+    when: "lawful_basis not in ['consent', 'contract', 'legal_obligation', 'vital_interest', 'public_task']"
+    decision: HOLD
+    reason_code: NO_LAWFUL_BASIS
+    description: "Vietnam Law 91/2025 does NOT recognize 'legitimate interest' as a lawful basis; non-consent processing requires statutory exemption under Art. 19."
+    source:
+      doc: "Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15"
+      ref: "Điều 9 (Sự đồng ý), Điều 19 (Các trường hợp xử lý dữ liệu không cần sự đồng ý)"
+      url: "https://thuvienphapluat.vn/van-ban/Bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx"
+    version_date: 2026-11-13
+    confidence: high
+    needs_legal_review: false
+
+  - id: R-VN-CONSENT-01
+    markets: [VN]
+    when: "lawful_basis == 'consent' and (not consent.granular or not consent.withdrawable)"
+    decision: REWORK
+    reason_code: CONSENT_INVALID
+    description: "Consent must be specific, voluntary, clear and withdrawable; bundled or irrevocable consent is void under Law 91/2025."
+    source:
+      doc: "Luật Bảo vệ dữ liệu cá nhân 91/2025/QH15"
+      ref: "Điều 9 (Nguyên tắc và điều kiện đồng ý), Điều 10 (Rút lại sự đồng ý)"
+      url: "https://thuvienphapluat.vn/van-ban/Bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx"
+    version_date: 2026-11-13
+    confidence: high
+    needs_legal_review: false
+
+  - id: R-VN-XB-01
+    markets: [VN]
+    when: "transfer.cross_border and not transfer.transfer_impact_assessment"
+    decision: HOLD
+    reason_code: XBORDER_NO_IMPACT_ASSESSMENT
+    description: "Cross-border data transfer requires Transfer Impact Assessment (TIA) dossier filed with Department of Cybersecurity (A05) within 60 days."
+    source:
+      doc: "Luật 91/2025/QH15 + Nghị định 356/2025/NĐ-CP"
+      ref: "Luật 91 Điều 21; NĐ 356 quy định hồ sơ đánh giá tác động chuyển dữ liệu ra nước ngoài"
+      url: "https://thuvienphapluat.vn/van-ban/Bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx"
+    version_date: 2026-11-13
+    confidence: high
+    needs_legal_review: false
+
+  - id: R-VN-DPIA-01
+    markets: [VN]
+    when: "not dpia_done"
+    decision: HOLD
+    reason_code: DPIA_MISSING
+    description: "Data Processing Impact Assessment (DPIA) must be established and archived at all times pursuant to Law 91 Article 20."
+    source:
+      doc: "Luật 91/2025/QH15 + Nghị định 356/2025/NĐ-CP"
+      ref: "Điều 20 (Đánh giá tác động xử lý dữ liệu cá nhân)"
+      url: "https://thuvienphapluat.vn/van-ban/Bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx"
+    version_date: 2026-11-13
+    confidence: high
+    needs_legal_review: false
+
+  - id: R-VN-SEC-01
+    markets: [VN, '*']
+    when: "storage.raw_retained and not storage.encryption_at_rest"
+    decision: HOLD
+    reason_code: NO_ENCRYPTION
+    description: "Personal data retained at rest must be protected by cryptographic measures; lack of encryption constitutes security violation."
+    source:
+      doc: "Luật 91/2025/QH15 + GDPR Art. 32"
+      ref: "Luật 91 Điều 23 (Biện pháp bảo vệ dữ liệu cá nhân)"
+      url: "https://thuvienphapluat.vn/van-ban/Bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx"
+
+  - id: R-VN-RET-01
+    markets: [VN, '*']
+    when: "retention_days and retention_days > 730"
+    decision: HOLD
+    reason_code: RETENTION_EXCESSIVE
+    description: "Retention period of 10 years (3650 days) for training video without statutory basis violates data minimization and storage limitation."
+    source:
+      doc: "Luật 91/2025/QH15 Điều 4, GDPR Art. 5(1)(e)"
+      ref: "Nguyên tắc giới hạn lưu trữ dữ liệu cá nhân"
+      url: "https://thuvienphapluat.vn/van-ban/Bo-may-hanh-chinh/Luat-Bao-ve-du-lieu-ca-nhan-2025-so-91-2025-QH15-625628.aspx"
+
+  # ---------------------------------------------------------------------------
+  # United States - California (CCPA / CPRA) Rules
+  # ---------------------------------------------------------------------------
+  - id: R-CA-NOTICE-01
+    markets: [US-CA]
+    when: "not notice_given"
+    decision: REWORK
+    reason_code: NOTICE_MISSING
+    description: "CCPA requires Notice at Collection before or at the time of collecting personal information (Cal. Civ. Code § 1798.100(b))."
+    source:
+      doc: "California Consumer Privacy Act (CCPA as amended by CPRA)"
+      ref: "Cal. Civ. Code § 1798.100(b), 16 CCR § 7012"
+      url: "https://oag.ca.gov/privacy/ccpa"
+
+  - id: R-CA-SPI-01
+    markets: [US-CA]
+    when: "'precise_location' in data_types and ambiguity_notes and len(ambiguity_notes.strip()) > 0"
+    decision: HOLD
+    reason_code: AMBIGUOUS_NEEDS_LEGAL
+    description: "Precise geolocation constitutes Sensitive Personal Information (SPI); business threshold ambiguity requires legal clarification."
+    source:
+      doc: "California Consumer Privacy Act (CCPA as amended by CPRA)"
+      ref: "Cal. Civ. Code § 1798.121 (Right to Limit Use of Sensitive Personal Information)"
+      url: "https://oag.ca.gov/privacy/ccpa"
+
+  # ---------------------------------------------------------------------------
+  # India (DPDP Act 2023 / Rules 2025) Rules
+  # ---------------------------------------------------------------------------
+  - id: R-IN-CONSENT-REC-01
+    markets: [IN]
+    when: "consent.obtained and not consent.record_available"
+    decision: HOLD
+    reason_code: CONSENT_RECORD_MISSING
+    description: "Digital Personal Data Protection Act requires verifiable consent proof; consent records must be auditable."
+    source:
+      doc: "Digital Personal Data Protection Act, 2023 (India)"
+      ref: "Section 6 (Consent Architecture & Verification), DPDP Rules 2025"
+      url: "https://www.meity.gov.in/content/digital-personal-data-protection-act-2023"
+
+  # ---------------------------------------------------------------------------
+  # General Storage & Retention Baseline Rules
+  # ---------------------------------------------------------------------------
+  - id: R-GEN-RET-01
+    markets: ['*']
+    when: "retention_days is null"
+    decision: REWORK
+    reason_code: RETENTION_UNBOUNDED
+    description: "Indefinite or unbounded storage without explicit retention period violates storage limitation principles."
+    source:
+      doc: "GDPR Art. 5(1)(e), ISO/IEC 27701:2019"
+      ref: "Storage limitation clause"
+      url: "https://eur-lex.europa.eu/eli/reg/2016/679/oj"

@@ -1,6 +1,6 @@
 # Day06 Data Lab — common commands.  Usage: make <target> TRACK=t02
 PY ?= .venv/bin/python
-TRACK ?= t02
+TRACK ?= t09
 OUT ?= out
 PRED = $(shell $(PY) -c "from src.metrics.tracks import get_track;print(get_track('$(TRACK)').pred_file)")
 
@@ -25,17 +25,19 @@ fixtures:            ## instructor only: regenerate fixtures (needs the private 
 	@test -f tools/make_fixtures.py || { echo "tools/make_fixtures.py is instructor-only (private overlay not installed)"; exit 1; }
 	$(PY) -m tools.make_fixtures
 
-baseline:            ## random baseline wiring example (t01, t02, t11, t13)
-	$(PY) -m src.main --track $(TRACK) --pipeline src.examples.random_baseline --output $(OUT)/baseline --run-name baseline --offline --seed 42
+GT ?= $(shell test -f reports/internal_gt_t09.csv && echo "--gt reports/internal_gt_t09.csv")
+
+baseline:            ## consent-only baseline for T09
+	$(PY) -m src.main --track $(TRACK) --pipeline src.baselines.consent_baseline --output $(OUT)/baseline --run-name baseline --offline --seed 42
 
 run:                 ## your PoC (src/pipeline.py)
 	$(PY) -m src.main --config configs/lab.yaml --track $(TRACK) --output $(OUT)/poc --run-name poc --offline --seed 42
 
 eval-baseline:
-	$(PY) -m src.evaluate --track $(TRACK) --pred $(OUT)/baseline/$(PRED) --run-name baseline --out reports/metrics_baseline.json
+	$(PY) -m src.evaluate --track $(TRACK) $(GT) --pred $(OUT)/baseline/$(PRED) --run-name baseline --out reports/metrics_baseline.json
 
 eval-poc:
-	$(PY) -m src.evaluate --track $(TRACK) --pred $(OUT)/poc/$(PRED) --run-name poc --out reports/metrics_poc.json
+	$(PY) -m src.evaluate --track $(TRACK) $(GT) --pred $(OUT)/poc/$(PRED) --run-name poc --out reports/metrics_poc.json
 
 compare:
 	$(PY) -m src.compare reports/metrics_baseline.json reports/metrics_poc.json --out reports/table1_baseline_vs_poc.md
