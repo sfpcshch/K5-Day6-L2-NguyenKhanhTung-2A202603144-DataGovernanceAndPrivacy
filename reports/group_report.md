@@ -371,3 +371,37 @@ tests/test_track_evaluators.py sssssssssssssssssssssssssssssssssssssss   [100%]
 - [x] **Đầy đủ bằng chứng thực nghiệm**: Có bảng đối chuẩn Table 1 (`reports/table1_baseline_vs_poc.md`), số liệu JSON của cả Baseline và PoC, phân tích chi tiết 2 failure cases, hàng đợi review có chữ ký DPO (`reports/review_queue.csv`), và nhật ký quyết định hệ thống (`reports/decision_log.csv`).
 - [x] **Kiểm soát nguồn gốc & Tính tất định**: Xác thực toàn vẹn 100% SHA-256 qua `tools/verify_manifests`, cố định seed 42, kiểm thử môi trường cô lập không mạng.
 - [x] **Đóng góp cá nhân minh bạch**: Học viên Nguyễn Khánh Tùng (ID: `2A202603144`) hoàn thành đầy đủ tất cả các hạng mục kỹ thuật, được thể hiện rõ ràng qua lịch sử Git commit và bảng phân bổ trách nhiệm.
+
+---
+
+## 13 · Bonus Criteria Verification (+15 Điểm Thưởng)
+
+### 13.1. Bonus 1 (+5đ) · Verified E2E trước phút 180 (Git Tag `demo-180m`)
+- **Minh chứng**: Đã đóng băng phiên bản demo và tạo Git tag `demo-180m` tại commit hoàn thiện pipeline E2E, đã push lên GitHub repository trước hạn 180 phút.
+- **Lệnh kiểm tra tag**: `git tag -l` và `git show demo-180m`.
+
+### 13.2. Bonus 2 (+5đ) · Ablation Study & Hidden Test Thực tế
+- **Minh chứng**: Triển khai script thí nghiệm bóc tách [src/ablation.py](file:///home/tung/.gemini/antigravity/scratch/K5-Day6-L2-NguyenKhanhTung-2A202603144-DataGovernanceAndPrivacy/src/ablation.py) và xuất báo cáo [reports/ablation_study.md](file:///home/tung/.gemini/antigravity/scratch/K5-Day6-L2-NguyenKhanhTung-2A202603144-DataGovernanceAndPrivacy/reports/ablation_study.md):
+
+| Mô hình / Biến thể Thử nghiệm | Crit-Miss (Eval) | False HOLD (Eval) | Guardrail Constraint | Accuracy (Eval) | Crit-Miss (All 12) | Accuracy (All 12) |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Full PoC (Privacy Gate)** | **0.0000** | **0.0000** | **PASS** ($\le 0.50$) | **1.0000** | **0.0000** | **1.0000** |
+| **All-HOLD (Trivial Baseline)** | 0.0000 | 1.0000 | **FAIL** ($1.0 > 0.50$) | 0.7500 | 0.0000 | 0.6667 |
+| **Consent-only Baseline** | 0.6667 | 0.0000 | PASS | 0.5000 | 0.7000 | 0.3333 |
+| **Ablation: No Cross-Border Check** | 0.0000 | 0.0000 | PASS | 1.0000 | 0.2000 | 0.8333 |
+| **Ablation: No DPIA Check** | 0.0000 | 0.0000 | PASS | 1.0000 | 0.1000 | 0.9167 |
+
+- **Ý nghĩa kỹ thuật**:
+  - Chứng minh mô hình tầm thường "All-HOLD" dù đạt Critical-miss = 0 nhưng **vi phạm nghiêm trọng Guardrail** (`False HOLD rate = 1.0000 > 0.50`).
+  - Khi bóc tách từng chiều luật định (bỏ kiểm tra chuyển dữ liệu quốc tế hoặc bỏ kiểm tra DPIA), tỷ lệ bỏ sót ca nguy hiểm tăng vọt từ 0.0000 lên 0.2000 và 0.1000 trên toàn bộ dữ liệu.
+
+### 13.3. Bonus 3 (+5đ) · Debate Tìm Bug Thật bằng Test (`tests/test_debate_adversarial.py`)
+- **Minh chứng**: Xây dựng bộ kiểm thử đối kháng 5 kịch bản chuyên sâu trong [tests/test_debate_adversarial.py](file:///home/tung/.gemini/antigravity/scratch/K5-Day6-L2-NguyenKhanhTung-2A202603144-DataGovernanceAndPrivacy/tests/test_debate_adversarial.py), đạt **5/5 tests PASS** (nâng tổng số test lên **57 passed**).
+- **Bug thật được phát hiện và xử lý**:
+  - *Vấn đề*: Trong logic kiểm tra chuyển dữ liệu xuyên biên giới của GDPR Chương V, nếu trường `mechanism` được cấu hình là chuỗi hoa/thường không chuẩn `"None"`, `"null"` hoặc một cơ chế tự bịa (ví dụ `"custom_agreement"`), bộ lọc cũ chỉ kiểm tra `None` nguyên thủy và từ khóa `"non-adequate"` trong destination, dẫn tới việc luồng dữ liệu lách luật thành công (`GO`).
+  - *Khắc phục*: Tinh chỉnh logic chuẩn hóa chuỗi và chỉ công nhận danh sách whitelist cơ chế chuyển giao hợp pháp duy nhất theo Chương V (`"adequacy"`, `"scc"`, `"bcr"`).
+- **Các kịch bản đối kháng khác đã kiểm chứng**:
+  1. *Consent Bundling Dark Pattern*: Gộp sự đồng ý ADAS vào điều khoản chung không cho rút lại -> Engine bắt chính xác `REWORK` + `CONSENT_INVALID`.
+  2. *Retention Evasion*: Lưu trữ dữ liệu thô vô thời hạn (`retention_days: None`) hoặc lưu trữ 20 năm không mã hóa -> Engine chặn dứt điểm `RETENTION_UNBOUNDED` và `RETENTION_EXCESSIVE`.
+  3. *Vietnam Legitimate Interest Illusion*: Đưa căn cứ Lợi ích hợp pháp của EU sang dự án tại Việt Nam -> Engine chặn dứt điểm với `NO_LAWFUL_BASIS`.
+  4. *All-HOLD Exploit*: Khẳng định trên môi trường kiểm thử rằng All-HOLD không thể vượt qua evaluator vì bị chặn bởi guardrail `False HOLD <= 0.50`.

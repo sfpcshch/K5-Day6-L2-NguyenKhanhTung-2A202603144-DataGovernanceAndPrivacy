@@ -116,13 +116,12 @@ def _evaluate_case(case: dict[str, Any]) -> tuple[str, list[str], str]:
     elif market == "EU":
         # Cross-border transfer: requires adequacy decision or transfer mechanism (Chapter V)
         if transfer.get("cross_border", False):
-            mechanism = transfer.get("mechanism")
-            destination = str(transfer.get("destination", ""))
-            if mechanism in (None, "unknown", "none", "null", "") or "non-adequate" in destination:
-                if mechanism not in ("adequacy", "scc", "bcr"):
-                    reasons.append("XBORDER_NO_MECHANISM")
-                    actions.append("HOLD")
-                    notes.append("GDPR Chapter V (Art. 44-49): Chuyển dữ liệu sang nước thứ ba thiếu cơ chế bảo đảm (SCC/BCR/Adequacy)")
+            mech = str(transfer.get("mechanism") or "").strip().lower()
+            dest = str(transfer.get("destination") or "").strip().lower()
+            if mech not in ("adequacy", "scc", "bcr") or "non-adequate" in dest:
+                reasons.append("XBORDER_NO_MECHANISM")
+                actions.append("HOLD")
+                notes.append("GDPR Chapter V (Art. 44-49): Chuyển dữ liệu sang nước thứ ba thiếu cơ chế bảo đảm (SCC/BCR/Adequacy)")
 
         # DPIA requirement for high-risk monitoring (Art. 35)
         if ("in_cabin_video" in data_types or "face" in data_types) and not dpia_done:
