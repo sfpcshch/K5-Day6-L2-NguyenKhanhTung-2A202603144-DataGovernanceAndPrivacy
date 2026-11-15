@@ -295,19 +295,21 @@ make compare
 Chạy lệnh `.venv/bin/pytest`:
 ```text
 ============================= test session starts ==============================
-collected 91 items
+collected 96 items
 
-tests/test_cli.py ........                                               [  8%]
-tests/test_common.py ...........                                         [ 20%]
-tests/test_fixtures.py ..........                                        [ 31%]
-tests/test_metrics.py ...............                                    [ 48%]
-tests/test_t09_privacy_gate.py .....                                     [ 53%]
-tests/test_track_evaluators.py sssssssssssssssssssssssssssssssssssssss   [100%]
+tests/test_cli.py ...s....s                                              [  9%]
+tests/test_common.py ...s                                                [ 13%]
+tests/test_debate_adversarial.py .....                                   [ 18%]
+tests/test_fixtures.py ............................ssssssssssssss.       [ 63%]
+tests/test_metrics.py ........                                           [ 71%]
+tests/test_t09_privacy_gate.py .....                                     [ 77%]
+tests/test_track_evaluators.py ssssssssssssssssssssss                    [100%]
 
-================== 52 passed, 39 skipped in 1.94s ==============================
+======================== 57 passed, 39 skipped in 2.14s ========================
 ```
-- **52 bài test độc lập vượt qua 100% (0 lỗi, 0 cảnh báo hỏng)**.
+- **57 bài test độc lập vượt qua 100% (0 lỗi, 0 cảnh báo hỏng)**.
 - `tests/test_t09_privacy_gate.py` kiểm thử đầy đủ 5 góc độ: thực thi E2E, tuân thủ Luật 91/2025 Việt Nam, tuân thủ GDPR/CCPA/PDPA, phát hiện sai sót của baseline và tính tất định tuyệt đối qua seed 42.
+- `tests/test_debate_adversarial.py` kiểm thử 5 kịch bản đối kháng chuyên sâu (All-HOLD guardrail exploit, consent bundling dark pattern, cross-border mechanism normalization bug, retention evasion, và VN legitimate interest illusion).
 - 39 bài test evaluator của các track khác được skip đúng thiết kế theo `tests/conftest.py` do repo học viên không chứa overlay ground-truth bí mật của giảng viên.
 
 ### 8.3. Thông tin môi trường thực thi
@@ -342,7 +344,7 @@ tests/test_track_evaluators.py sssssssssssssssssssssssssssssssssssssss   [100%]
 | **Nguyễn Khánh Tùng** (ID: `2A202603144`) | `Nguyen Khanh Tung` / `sfpcshch@gmail.com` | Lead / AI Governance Architect | `configs/lab.yaml`, `Makefile`, `src/main.py` | Thiết lập kiến trúc đường ống E2E cho T09, cấu hình offline guard, xử lý seed tất định và quản lý quy trình phát hành | **Có (100%)** |
 | **Nguyễn Khánh Tùng** (ID: `2A202603144`) | `Nguyen Khanh Tung` / `sfpcshch@gmail.com` | Legal Policy & Rules Engineer | `src/pipeline.py`, `fixtures/t09_privacy_gate/rules/policy_rules.yaml` | Xây dựng bộ quy tắc pháp lý đa tài phán (VN Luật 91/2025, GDPR, CCPA, PDPA, DPDP) và hoàn thiện 5 bước `load`, `process`, `rank`, `review`, `decide` | **Có (100%)** |
 | **Nguyễn Khánh Tùng** (ID: `2A202603144`) | `Nguyen Khanh Tung` / `sfpcshch@gmail.com` | Baseline & Evaluation Specialist | `src/baselines/consent_baseline.py`, `reports/internal_gt_t09.csv`, `reports/metrics_*.json` | Xây dựng Consent-only baseline chứng minh Critical-miss Rate 66.67%, đối chuẩn định lượng PoC đạt 0.00% và tạo Table 1 | **Có (100%)** |
-| **Nguyễn Khánh Tùng** (ID: `2A202603144`) | `Nguyen Khanh Tung` / `sfpcshch@gmail.com` | QA & Verification Lead | `tests/test_t09_privacy_gate.py`, `tests/test_cli.py` | Soạn thảo bộ unit & integration test chuyên sâu cho T09, đảm bảo 52/52 bài test pass và 0 FAIL trên `tools.preflight` | **Có (100%)** |
+| **Nguyễn Khánh Tùng** (ID: `2A202603144`) | `Nguyen Khanh Tung` / `sfpcshch@gmail.com` | QA & Verification Lead | `tests/test_t09_privacy_gate.py`, `tests/test_debate_adversarial.py`, `tests/test_cli.py` | Soạn thảo bộ unit & integration test chuyên sâu cho T09, đảm bảo 57/57 bài test pass và 0 FAIL trên `tools.preflight` | **Có (100%)** |
 | **Nguyễn Khánh Tùng** (ID: `2A202603144`) | `Nguyen Khanh Tung` / `sfpcshch@gmail.com` | Data Protection Officer (DPO) | `reports/review_queue.csv`, `out/poc/audit_log.jsonl`, `reports/group_report.md` | Thực hiện quy trình Human-in-the-loop review 12 hồ sơ, ghi nhận audit trail bất biến và hoàn thiện báo cáo kỹ thuật | **Có (100%)** |
 
 ---
@@ -366,7 +368,7 @@ tests/test_track_evaluators.py sssssssssssssssssssssssssssssssssssssss   [100%]
 - [x] **Đúng 1 lệnh run, 1 lệnh evaluate, 1 lệnh test**:
   - `make run` thực thi hoàn chỉnh PoC tạo toàn bộ deliverables.
   - `make eval-poc` đánh giá chính xác metrics và kiểm tra guardrail.
-  - `make test` thực thi 52 tests đạt 100% pass.
+  - `make test` thực thi 57 tests đạt 100% pass.
   - Vận hành hoàn toàn offline, không yêu cầu tải thêm bất kỳ file ngoài nào.
 - [x] **Đầy đủ bằng chứng thực nghiệm**: Có bảng đối chuẩn Table 1 (`reports/table1_baseline_vs_poc.md`), số liệu JSON của cả Baseline và PoC, phân tích chi tiết 2 failure cases, hàng đợi review có chữ ký DPO (`reports/review_queue.csv`), và nhật ký quyết định hệ thống (`reports/decision_log.csv`).
 - [x] **Kiểm soát nguồn gốc & Tính tất định**: Xác thực toàn vẹn 100% SHA-256 qua `tools/verify_manifests`, cố định seed 42, kiểm thử môi trường cô lập không mạng.
